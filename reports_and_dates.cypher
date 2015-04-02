@@ -1,0 +1,56 @@
+// Import all the datas
+
+load csv with headers from "file:///Users/A658308/reporter-export.csv" AS row
+
+// Make the reports
+WITH row LIMIT 100
+MERGE (r:Report {date: row.TimestampofReportGMT, 
+        latitude: row.Latitude,
+        longitude: row.Longitude, 
+        weather: row.Weather, 
+        noise_level: row.`Ambient Audio Description`,
+                working: row.`Are-you-working`, 
+        location: row.`Where-are-you`})
+
+// Makes the calendar 
+MERGE (y:Year {year:substring(r.date,0,4)})
+MERGE (m:Month {month:substring(r.date,5,2)})-[:IN_YEAR]->(y)
+// Uses the last entry from each day to make the day node, know its the last day because the bike question is only asked on the last report of the day.
+FOREACH(ignoreMe IN CASE WHEN trim(row.`Did-you-bike-to-work`) <> "" THEN [1] ELSE [] END | 
+MERGE (d:Day {day:substring(r.date,8,2),
+    biked_to_work: row.`Did-you-bike-to-work`, 
+    sleep_quality: row.`How-did-you-sleep`, 
+    ate_dessert: row.`Did-you-eat-dessert`, 
+    tv_watched: row.`How-many-hours-of-tv-did-you-watch`, 
+    meditated: row.`Did-you-meditate-today`, 
+    takeaway: row.`What-did-you-learn-today`, 
+    coffees_drank: row.`How-many-coffees-did-you-have-today`, 
+    sex: row.`Did-you-have-sex-today`, 
+    meeting: row.`Did-you-go-to a-meeting`,
+    stores: row.`What-stores-did-you-shop-at`,
+    restaurants: row.`What-restaurants-did-you-eat-at`,
+    books: row.`Did-you-finish-a-book-today`,
+    movies: row.`Did-you-watch-a-movie-today`,
+    time_driving: row.`How-much-did-you-drive-today`}
+    )-[:IN_MONTH]->(m))
+
+// Attaches the reports to the right days
+WITH row
+MATCH (r:Report),(d:Day)
+WHERE r.date = row.TimestampofReportGMT AND d.day = substring(r.date, 8,2)
+MERGE (r)-[:REPORTED_ON_DAY]->(d)
+
+// Makes the people and attaches them to reports
+WITH row, split(row.`Who-are-you-with`, ",") AS people
+MATCH (r:Report)
+WHERE r.date = row.TimestampofReportGMT
+UNWIND people as person
+FOREACH(ignoreMe IN CASE WHEN trim(person) <> "" THEN [1] ELSE [] END | 
+FOREACH(ignoreMe IN CASE WHEN trim(person) <> "No one" THEN [1] ELSE [] END | MERGE (p:Person {name: person}) MERGE (p)<-[:WAS_WITH]-(r)))
+
+// Makes the activities and attaches them to reports
+WITH row, split(row.`What-are-you-doing`, ",") AS activities
+MATCH (r:Report)
+WHERE r.date = row.TimestampofReportGMT
+UNWIND activities as activity
+FOREACH(ingoreMe IN CASE WHEN trim(activity) <> "" THEN [1] ELSE [] END | MERGE (a:Activity {name: activity}) MERGE (r)-[:WAS_DOING]->(a));
