@@ -14,3 +14,8 @@ The general scheme is:
 ```
 
 Challenges were splitting fields into multiple values, handling null values, and creating unique nodes for people, time, and activities.
+
+I made a gist for seeing the thing in action:
+http://gist.neo4j.org/?aba998f750a9fa5c5584
+
+based on https://gist.github.com/joesus/aba998f750a9fa5c5584
