@@ -19,3 +19,5 @@ I made a gist for seeing the thing in action:
 http://gist.neo4j.org/?aba998f750a9fa5c5584
 
 based on https://gist.github.com/joesus/aba998f750a9fa5c5584
+
+![Alt text](/neo4j.png?raw=true "Neo4j Gist Screencap")
